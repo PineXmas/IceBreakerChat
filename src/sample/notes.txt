@@ -1,0 +1,3 @@
+1/ no PROPER way to tell if the connection is closed remotely (neither using isClosed() or isConnected(), since they only concern the local socket, not the remote one)
+https://stackoverflow.com/questions/10240694/java-socket-api-how-to-tell-if-a-connection-has-been-closed
+

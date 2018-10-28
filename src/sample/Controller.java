@@ -9,6 +9,8 @@ public class Controller {
     //socket
     public Server_Echo server = new Server_Echo();
     public Client client = new Client();
+    public Thread client_receiving_thread;
+    public Object lock_txtChatLog = new Object();
 
     //controls
     public Button btnServerListen;
@@ -23,15 +25,12 @@ public class Controller {
 
     public void btnServerListenHandler_Click(){
         try {
-            if (server.isListening()) {
-                System.out.println("Server is still listening");
-                return;
-            }
 
             int port = Integer.valueOf(txtServerPort.getText());
             server.start(port);
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.print("Error in btnServerListenHandler_Click");
+            System.out.println(e.getLocalizedMessage());
         }
     }
 
@@ -45,14 +44,33 @@ public class Controller {
                 return;
             }
 
-            client.disconnect();
-
             String server_address = txtServerAddress.getText();
             int port = Integer.valueOf(txtServerPort.getText());
 
             client.connect(server_address, port);
+
+            //start a thread here to read & display whatever input coming from the server
+            client_receiving_thread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+
+                    while (!client.isClosed()) {
+                        String message_from_server = client.receiveMessage();
+                        if (message_from_server == null) {
+                            break;
+                        }
+
+                        synchronized (lock_txtChatLog) {
+                            txtChatLog.appendText("C:" + message_from_server + "\n");
+                        }
+                    }
+                }
+            });
+            client_receiving_thread.start();
+
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.print("Error in btnConnectHandler_Click");
+            System.out.println(e.getLocalizedMessage());
         }
     }
 
@@ -69,12 +87,15 @@ public class Controller {
         }
 
         //send to server
-        boolean is_send_ok = client.send_message(message);
+        boolean is_send_ok = client.sendMessage(message + "\n");
 
         //clear message text box & update chat log
         if (is_send_ok) {
             txtMessage.clear();
-            txtChatLog.appendText("C:" + message + "\n");
+
+            synchronized (lock_txtChatLog) {
+                txtChatLog.appendText("C:" + message + "\n");
+            }
         }
     }
 

@@ -50,7 +50,7 @@ public class Server_Echo {
                         BufferedReader reader = new BufferedReader(input_stream_reader);
                         OutputStreamWriter output_stream_writer = new OutputStreamWriter(socket_client.getOutputStream());
                         BufferedWriter writer = new BufferedWriter(output_stream_writer);
-                        while (true) {
+                        while (!socket_client.isClosed()) {
                             String line = reader.readLine();
                             if (line.equals("end_connection")) {
                                 break;
@@ -58,7 +58,7 @@ public class Server_Echo {
 
                             //echo
                             System.out.println("Msg from client:" + line);
-                            writer.write(line);
+                            writer.write(line + "\n");
                             writer.flush();
                         }
                         reader.close();
@@ -66,23 +66,22 @@ public class Server_Echo {
 
                         //close connection to client
                         socket_client.close();
-
-                        //mark as server has stop listening
-                        synchronized (server_lock) {
-                            is_listening = false;
-                        }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        System.out.print("Error in listening thread:");
+                        System.out.println(e.getMessage());
                     } finally {
                         try {
                             if (socket != null) {
                                 socket.close();
-                                synchronized (server_lock) {
-                                    is_listening = false;
-                                }
                             }
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            System.out.print("Error in listening thread (finally):");
+                            System.out.println(e.getLocalizedMessage());
+                        }
+
+                        //mark as server has stop listening
+                        synchronized (server_lock) {
+                            is_listening = false;
                         }
                     }
                 }
@@ -91,7 +90,8 @@ public class Server_Echo {
             System.out.println("Server is listening");
 
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.print("Error in start:");
+            System.out.println(e.getLocalizedMessage());
         }
     }
 
@@ -114,11 +114,16 @@ public class Server_Echo {
                 synchronized (server_lock) {
                     is_listening = false;
                 }
-
-                System.out.println("Server has stopped listening");
             }
+
+            if (socket_client != null) {
+                socket_client.close();
+            }
+
+            System.out.println("Server has stopped listening");
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.print("Error in stop:");
+            System.out.println(e.getLocalizedMessage());
         }
     }
 
