@@ -1,1 +1,0 @@
-This file is used to test GIST created by Intellij.
